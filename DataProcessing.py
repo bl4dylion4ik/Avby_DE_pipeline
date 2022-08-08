@@ -30,31 +30,35 @@ spark = SparkSession.builder.enableHiveSupport().getOrCreate()
 df = spark.read.format('json') \
     .load(f's3a://{YC_INPUT_DATA_BUCKET}/{DATE}/*.json')
 
-
 df_fact = df.select(col('id'),
                     col('price.usd.currency'),
-                    col('price.usd.amount').cast(DoubleType()).alias('amount '),
-                   col('publishedAt').cast(TimestampType()),
-                   col('locationName'),
-                   col('sellerName'),
-                   col('indexPromo'),
-                   col('top'),
-                   col('highlight'),
-                   col('status'),
-                   col('publicUrl'))
+                    col('price.usd.amount').cast(DoubleType()) \
+                    .alias('amount'),
+                    col('publishedAt').cast(TimestampType()),
+                    col('locationName'),
+                    col('sellerName'),
+                    col('indexPromo'),
+                    col('top'),
+                    col('highlight'),
+                    col('status'),
+                    col('publicUrl'))
 
-df_auto = df.select(explode(df.properties)\
-                    .alias("dict_id")).select(col("dict_id.name"),
-                    col("dict_id.value")).toPandas().set_index('name').T
-df_auto = spark.createDataFrame(df_auto)
+df_preprocees = df.withColumn('dict_id',
+                              explode(df.properties)).select(col('id'),
+                                                             col("dict_id.name"),
+                                                             col("dict_id.value")) \
+                                                            .groupBy('id') \
+                                                            .pivot('name') \
+                                                            .agg(expr("coalesce(first(value), null)"))
 
 for detail in auto_detail_columns:
-    if has_column(df_auto, detail) is False:
-        df_auto = df_auto.withColumn(detail, lit(None))
+    if has_column(df_preprocees, detail) is False:
+        df_preprocees = df_preprocees.withColumn(detail, lit(None).cast(StringType()))
     else:
         continue
 
-df_auto = df_auto.select(*auto_detail_columns)
-df_final = df_fact.join(df_auto)
+df_preprocees = df_preprocees.select(*auto_detail_columns)
+df_final = df_fact.join(df_preprocees, on='id')
+
 df_final.write.format('csv') \
     .save(f's3a://{YC_OUTPUT_DATA_BUCKET}/{DATE}/')
