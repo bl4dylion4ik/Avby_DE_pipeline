@@ -16,6 +16,7 @@ def load_to_storage(brand_name: str, brand_id: int, date: str, templates_dict: d
     aws_access_key_id = Variable.get("aws_access_key_id")
     aws_secret_access_key = Variable.get("aws_secret_access_key")
     session = boto3.session.Session()
+    list_info = []
     s3 = session.client(service_name='s3',
                         endpoint_url='https://storage.yandexcloud.net',
                         aws_access_key_id=aws_access_key_id,
@@ -24,11 +25,12 @@ def load_to_storage(brand_name: str, brand_id: int, date: str, templates_dict: d
         for _id in get_id_list_per_page(brand_id, page):
             try:
                 info = get_info_by_id(int(_id))
-                serialized_info = json.dumps(info).encode('utf-8')
-                s3.put_object(Bucket=f'av-bucket', Key=f'{date}/{brand_name}/{_id}.json', Body=serialized_info)
+                list_info.append(info)
             except requests.exceptions.ConnectionError as e:
                 logging.warning(f'ConnectionError, more detail {e}')
                 continue
+    serialized_info = json.dumps(list_info).encode('utf-8')
+    s3.put_object(Bucket=f'av-bucket', Key=f'{date}/{brand_name}/{brand_id}.json', Body=serialized_info)
 
 
 def generate_dag(brand_name: str, brand_id: int, number: int):
@@ -42,20 +44,23 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
 
         count_number = PythonOperator(task_id="count_number",
                                       python_callable=get_count_of_brand,
-                                      op_kwargs={"brand_id": brand_id}, dag=dag)
+                                      op_kwargs={"brand_id": brand_id},
+                                      dag=dag)
 
         count_pages = PythonOperator(task_id="count_pages",
                                      python_callable=get_pages,
                                      templates_dict={
                                          "count": "{{task_instance.xcom_pull(task_ids='count_number', key='count')}}"
-                                     }, dag=dag)
+                                     },
+                                     dag=dag)
 
         load = PythonOperator(task_id="load_to_storage",
                               python_callable=load_to_storage,
                               templates_dict={
                                   "count_pages": "{{task_instance.xcom_pull(task_ids='count_pages', key='pages')}}"
                               },
-                              op_kwargs={"brand_id": brand_id, "brand_name": brand_name, "date": "{{ ds }}"}, dag=dag)
+                              op_kwargs={"brand_id": brand_id, "brand_name": brand_name, "date": "{{ ds }}"},
+                              dag=dag)
 
         send_email = EmailOperator(task_id="send_email",
                                    to='vert3x.man@gmail.com',
