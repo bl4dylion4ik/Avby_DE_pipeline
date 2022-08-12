@@ -61,7 +61,7 @@ x-airflow-common:
     AIRFLOW__METRICS__STATSD_ON: 'true'
     AIRFLOW__METRICS__STATSD_PORT: 9125
     AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
-    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:- apache-airflow-providers-yandex airflow-clickhouse-plugin}
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
