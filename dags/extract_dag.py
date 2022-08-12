@@ -14,6 +14,8 @@ from airflow.providers.yandex.operators.yandexcloud_dataproc import (
     DataprocDeleteClusterOperator,
     DataprocCreatePysparkJobOperator
 )
+from airflow_clickhouse_plugin.operators.clickhouse_operator import ClickHouseOperator
+from airflow_clickhouse_plugin.hooks.clickhouse_hook import ClickHouseHook
 import requests
 
 from scraper import BRAND_LIST, get_pages, get_id_list_per_page, get_info_by_id, get_count_of_brand
@@ -81,7 +83,7 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
     with DAG(
             dag_id=f'{brand_id}_to_cloud',
             schedule_interval=schedule_interval,
-            start_date=datetime(2022, 8, 10),
+            start_date=datetime(2022, 8, 13),
 
     ) as dag:
 
@@ -105,7 +107,7 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
                                  op_kwargs={"brand_id": brand_id},
                                  dag=dag)
 
-        load = PythonOperator(task_id="load_to_storage",
+        load_to_storage = PythonOperator(task_id="load_to_storage",
                               python_callable=load_to_cloud,
                               templates_dict={
                                   "info": "{{task_instance.xcom_pull(task_ids='extract_from_api', key='info')}}"
@@ -135,7 +137,7 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
             datanode_count=0,
             connection_id='yc-airflow-sa',
             properties={
-                'spark:spark.hive.metastore.uris': '',
+                'spark:spark.hive.metastore.uris': 'thrift://rc1b-dataproc-m-x13tcx7ihbbpj0gy.mdb.yandexcloud.net:9083',
                 'spark:spark.hive.metastore.warehouse.dir': ''
             },
             dag=dag
@@ -155,6 +157,31 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
             dag=dag
         )
 
+        connect_to_db = ClickHouseHook()  # to do
+
+        insert_into_db = ClickHouseOperator(
+            task_id='insert_into_clickhouse',
+            database='clickhousedb',
+            sql=
+            f'''
+                INSERT INTO clickhousedb.Auto (
+                    Id, brand, model, generation, year, engine_capacity, transmission_type,
+                    body_type, condition, miliage_km, color, drive_type, indexPromo, top, highlighted, 
+                    status, publicUrl, SellerName, SellerCity, publishedAt, Currency, Amount)
+                SELECT Id, brand, model, generation, year, engine_capacity, transmission_type,
+                    body_type, condition, miliage_km, color, drive_type, indexPromo, top, highlighted, 
+                    status, publicUrl, SellerName, SellerCity, publishedAt, Currency, Amount
+                FROM s3('https://storage.yandexcloud.net/av-output/{{ ds }}/{brand_name}.csv',
+                    'CSVWithNames',
+                    'Id Int32, brand String, model String, generation String, year Int, engine_capacity Float32,
+                     transmission_type String, body_type String, condition String, miliage_km Int32, color String,
+                     drive_type String, indexPromo bool, top bool, highlighted bool, status String, publicUrl String,
+                     SellerName String, SellerCity String, publishedAt DateTime, Currency String, Amount Float32')
+            ''',
+            clickhouse_conn_id='clickhouse_connection',
+            dag=dag,
+        )
+
         send_email = EmailOperator(task_id="send_email",
                                    to='vert3x.man@gmail.com',
                                    subject='Load process',
@@ -162,8 +189,9 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
                                    dag=dag)
 
         count_number >> count_pages >>\
-        extract >> load >> \
+        extract >> load_to_storage >> \
         create_spark_cluster >> spark_processing >> delete_spark_cluster >>\
+        connect_to_db >> insert_into_db >>\
         send_email
 
         return dag
@@ -175,3 +203,4 @@ for i, brand in enumerate(BRAND_LIST):
         brand_id=int(brand['id']),
         number=i
     )
+
