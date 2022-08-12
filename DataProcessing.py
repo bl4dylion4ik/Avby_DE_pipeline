@@ -4,10 +4,12 @@ from pyspark.sql.functions import *
 from pyspark.sql.types import *
 
 from datetime import datetime
+import sys
 
 
-YC_INPUT_DATA_BUCKET = ''
-YC_OUTPUT_DATA_BUCKET = ''
+YC_INPUT_DATA_BUCKET = 'av-input'
+YC_OUTPUT_DATA_BUCKET = 'av-output'
+BRAND_NAME = sys.argv[1]
 DATE = datetime.now().strftime('%Y-%m-%d')
 
 auto_detail_columns = ['brand', 'model', 'generation',
@@ -28,7 +30,7 @@ def has_column(df, col):
 spark = SparkSession.builder.enableHiveSupport().getOrCreate()
 
 df = spark.read.format('json') \
-    .load(f's3a://{YC_INPUT_DATA_BUCKET}/{DATE}/*.json')
+    .load(f's3a://{YC_INPUT_DATA_BUCKET}/{DATE}/{BRAND_NAME}.json')
 
 df_fact = df.select(col('id'),
                     col('price.usd.currency'),
@@ -61,4 +63,4 @@ df_preprocees = df_preprocees.select(*auto_detail_columns)
 df_final = df_fact.join(df_preprocees, on='id')
 
 df_final.write.format('csv') \
-    .save(f's3a://{YC_OUTPUT_DATA_BUCKET}/{DATE}/')
+    .save(f's3a://{YC_OUTPUT_DATA_BUCKET}/{DATE}/{BRAND_NAME}')
