@@ -23,7 +23,7 @@ from scraper import BRAND_LIST, get_pages, get_id_list_per_page, get_info_by_id,
 YC_DP_FOLDER_ID = 'b1gugjqmcqtrm4l25tat'
 YC_DP_CLUSTER_NAME = f'tmp-dp-{uuid.uuid4()}'
 YC_DP_CLUSTER_DESC = "Temporary cluster for Spark processing under Air flow orchestration"
-YC_DP_SUBNET_ID = 'enpssl6is4i1ql2ftcm5'  # YC subnet to create cluster
+YC_DP_SUBNET_ID = 'e9b6hebtksbtd1o1tj7g'  # YC subnet to create cluster
 YC_DP_SA_ID = 'aje104fk12454el9el5u'  # YC service account for Data Proc cluster
 
 YC_INPUT_DATA_BUCKET = 'av-input'  # YC S3 bucket for input data
@@ -116,7 +116,7 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
                               dag=dag)
 
         create_spark_cluster = DataprocCreateClusterOperator(
-            task_id='dp-cluster-create-task',
+            task_id='cluster-create',
             folder_id=YC_DP_FOLDER_ID,
             cluster_name=YC_DP_CLUSTER_NAME,
             cluster_description=YC_DP_CLUSTER_DESC,
@@ -135,52 +135,46 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
             computenode_max_hosts_count=5,
             services=['YARN', 'SPARK'],
             datanode_count=0,
-            connection_id='yc-airflow-sa',
-            properties={
-                'spark:spark.hive.metastore.uris': 'thrift://rc1b-dataproc-m-x13tcx7ihbbpj0gy.mdb.yandexcloud.net:9083',
-                'spark:spark.hive.metastore.warehouse.dir': ''
-            },
             dag=dag
         )
 
         spark_processing = DataprocCreatePysparkJobOperator(
-            task_id='dp-cluster-pyspark-task',
+            task_id='cluster-pyspark-job',
             main_python_file_uri=f's3a://{YC_SOURCE_BUCKET}/DataProcessing.py',
-            connection_id='yc-airflow-sa',
             args=[brand_name],
             dag=dag
         )
 
         delete_spark_cluster = DataprocDeleteClusterOperator(
-            task_id='dp-cluster-create-task',
+            task_id='cluster-delete',
             trigger_rule=TriggerRule.ALL_DONE,
             dag=dag
         )
 
-        connect_to_db = ClickHouseHook()  # to do
-
-        insert_into_db = ClickHouseOperator(
-            task_id='insert_into_clickhouse',
-            database='clickhousedb',
-            sql=
-            f'''
-                INSERT INTO clickhousedb.Auto (
-                    Id, brand, model, generation, year, engine_capacity, transmission_type,
-                    body_type, condition, miliage_km, color, drive_type, indexPromo, top, highlighted, 
-                    status, publicUrl, SellerName, SellerCity, publishedAt, Currency, Amount)
-                SELECT Id, brand, model, generation, year, engine_capacity, transmission_type,
-                    body_type, condition, miliage_km, color, drive_type, indexPromo, top, highlighted, 
-                    status, publicUrl, SellerName, SellerCity, publishedAt, Currency, Amount
-                FROM s3('https://storage.yandexcloud.net/av-output/{{ ds }}/{brand_name}.csv',
-                    'CSVWithNames',
-                    'Id Int32, brand String, model String, generation String, year Int, engine_capacity Float32,
-                     transmission_type String, body_type String, condition String, miliage_km Int32, color String,
-                     drive_type String, indexPromo bool, top bool, highlighted bool, status String, publicUrl String,
-                     SellerName String, SellerCity String, publishedAt DateTime, Currency String, Amount Float32')
-            ''',
-            clickhouse_conn_id='clickhouse_connection',
-            dag=dag,
-        )
+        # connect_to_db = ClickHouseHook()
+        #
+        # insert_into_db = ClickHouseOperator(
+        #     task_id='insert_into_clickhouse',
+        #     database='clickhousedb',
+        #     sql=
+        #     f'''
+        #         INSERT INTO clickhousedb.Auto (
+        #             Id, brand, model, generation, year, engine_capacity, transmission_type,
+        #             body_type, condition, miliage_km, color, drive_type, indexPromo, top, highlighted,
+        #             status, publicUrl, SellerName, SellerCity, publishedAt, Currency, Amount)
+        #         SELECT Id, brand, model, generation, year, engine_capacity, transmission_type,
+        #             body_type, condition, miliage_km, color, drive_type, indexPromo, top, highlighted,
+        #             status, publicUrl, SellerName, SellerCity, publishedAt, Currency, Amount
+        #         FROM s3('https://storage.yandexcloud.net/av-output/{{ ds }}/{brand_name}.csv',
+        #             'CSVWithNames',
+        #             'Id Int, brand String, model String, generation String, year Int, engine_capacity Float32,
+        #              transmission_type String, body_type String, condition String, miliage_km Double, color String,
+        #              drive_type String, indexPromo bool, top bool, highlighted bool, status String, publicUrl String,
+        #              SellerName String, SellerCity String, publishedAt DateTime, Currency String, Amount Float32')
+        #     ''',
+        #     clickhouse_conn_id='clickhouse_connection',
+        #     dag=dag,
+        # )
 
         send_email = EmailOperator(task_id="send_email",
                                    to='vert3x.man@gmail.com',
@@ -191,7 +185,6 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
         count_number >> count_pages >>\
         extract >> load_to_storage >> \
         create_spark_cluster >> spark_processing >> delete_spark_cluster >>\
-        connect_to_db >> insert_into_db >>\
         send_email
 
         return dag
@@ -203,4 +196,3 @@ for i, brand in enumerate(BRAND_LIST):
         brand_id=int(brand['id']),
         number=i
     )
-

@@ -5,6 +5,7 @@ from pyspark.sql.types import *
 
 from datetime import datetime
 import sys
+import logging
 
 
 YC_INPUT_DATA_BUCKET = 'av-input'
@@ -28,6 +29,8 @@ def has_column(df, col):
 
 
 spark = SparkSession.builder.enableHiveSupport().getOrCreate()
+
+logging.info(f'Read file from s3 bucket: {DATE}/{BRAND_NAME}.json')
 
 df = spark.read.format('json') \
     .load(f's3a://{YC_INPUT_DATA_BUCKET}/{DATE}/{BRAND_NAME}.json')
@@ -61,6 +64,8 @@ for detail in auto_detail_columns:
 
 df_preprocees = df_preprocees.select(*auto_detail_columns)
 df_final = df_fact.join(df_preprocees, on='id')
+
+logging.info(f'Read file to s3 bucket: {DATE}/{BRAND_NAME}.csv')
 
 df_final.write.format('csv') \
     .save(f's3a://{YC_OUTPUT_DATA_BUCKET}/{DATE}/{BRAND_NAME}')
