@@ -17,6 +17,8 @@ Collecting metrics from Airflow occurs with Prometheus and their visualization w
 ![Chart of dag](img/image_2022-08-07_14-58-53.png)
 
 
+
+
 # Files
 
 - docker-compose.yaml - File that allows to use Airflow
