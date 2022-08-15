@@ -21,7 +21,9 @@ Collecting metrics from Airflow occurs with Prometheus and their visualization w
 
 ### Schema in s3 bucket and DataProc cluster
 ![Chart of dag](img/chrome_TOCAOB5PIx.png)
+#
 ![Chart of dag](img/image_2022-08-07_15-02-04.png)
+#
 ![Chart of dag](img/chrome_i0nNq6FPCY.png)
 
 
