@@ -30,27 +30,6 @@ YC_SOURCE_BUCKET = "av-processing"  # YC S3 bucket for pyspark source files
 YC_DP_LOGS_BUCKET = "av-logs"  # YC S3 bucket for Data Proc cluster logs
 
 
-# def load_to_storage(brand_name: str, brand_id: int, date: str, templates_dict: dict, **context):
-#     aws_access_key_id = Variable.get("aws_access_key_id")
-#     aws_secret_access_key = Variable.get("aws_secret_access_key")
-#     session = boto3.session.Session()
-#     list_info = []
-#     s3 = session.client(service_name='s3',
-#                         endpoint_url='https://storage.yandexcloud.net',
-#                         aws_access_key_id=aws_access_key_id,
-#                         aws_secret_access_key=aws_secret_access_key)
-#     for page in range(int(templates_dict['count_pages'])):
-#         for _id in get_id_list_per_page(brand_id, page):
-#             try:
-#                 info = get_info_by_id(int(_id))
-#                 list_info.append(info)
-#             except requests.exceptions.ConnectionError as e:
-#                 logging.warning(f'ConnectionError, more detail {e}')
-#                 continue
-#     serialized_info = json.dumps(list_info).encode('utf-8')
-#     s3.put_object(Bucket=f'av-bucket', Key=f'{date}/{brand_name}/{brand_id}.json', Body=serialized_info)
-
-
 def extract_from_api(brand_id: int, templates_dict: dict, **context):
     list_info = []
     for page in range(int(templates_dict['count_pages'])):
@@ -157,21 +136,21 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
             database='clickhousedb',
             sql=
             f'''
-                INSERT INTO clickhousedb.Auto (
-                    id, currency, amount, publishedAt, locationName, sellerName, indexPromo,
-                    top, highlighted, status, publicUrl, brand, model, generation, year, engine_capacity,
-                    engine_type, transmission_type, body_type, drive_type, color, miliage_km, condition)
-                SELECT id, currency, amount, publishedAt, locationName, sellerName, indexPromo,
-                    top, highlighted, status, publicUrl, brand, model, generation, year, engine_capacity,
-                    engine_type, transmission_type, body_type, drive_type, color, miliage_km, condition
-                FROM s3('https://storage.yandexcloud.net/av-output/{{ ds }}/{brand_name}/*.csv',
-                    'CSVWithNames',
-                    'id Int32, currency String, amount Float32, publishedAt DateTime, locationName String,
-                    sellerName String, indexPromo bool, top bool, highlighted bool, status String, publicUrl String,
-                    brand String, model String, generation String, year Int8, engine_capacity Float32,
-                    engine_type Float32, transmission_type String, body_type String, drive_type String,
-                    color String, miliage_km Int32, condition String')
-            ''',
+                        INSERT INTO clickhousedb.Auto (
+                            id, currency, amount, publishedAt, locationName, indexPromo,
+                            top, highlight, status, publicUrl, brand, model, generation, year, engine_capacity,
+                            engine_type, transmission_type, body_type, drive_type, color, mileage_km, condition)
+                        SELECT id, currency, amount, publishedAt, locationName, indexPromo,
+                            top, highlight, status, publicUrl, brand, model, generation, year, engine_capacity,
+                            engine_type, transmission_type, body_type, drive_type, color, mileage_km, condition
+                        FROM s3('https://storage.yandexcloud.net/av-output/2022-08-15/Daihatsu/*.csv',
+                         'YCAJE30XgdytxZagWHrAXw28g', 'YCOJZ_xTx3NdeBpyPrCLw3vcSBY9vi_woPti0pVi', 'CSVWithNames',
+                            'id Int64, currency String, amount Float32, publishedAt Date, locationName String,
+                            indexPromo bool, top bool, highlight bool, status String, publicUrl String,
+                            brand String, model String, generation String, year Int16, engine_capacity Float32,
+                            engine_type String, transmission_type String, body_type String, drive_type String,
+                            color String, mileage_km Int32, condition String')
+                    ''',
             clickhouse_conn_id='clickhouse_connection',
             dag=dag,
         )
@@ -196,3 +175,4 @@ for i, brand in enumerate(BRAND_LIST):
         brand_id=int(brand['id']),
         number=i
     )
+

@@ -45,9 +45,8 @@ df_fact = df.select(col('id'),
                     col('price.usd.currency'),
                     col('price.usd.amount').cast(DoubleType()) \
                     .alias('amount'),
-                    col('publishedAt').cast(TimestampType()),
+                    col('publishedAt').cast(DateType()),
                     col('locationName'),
-                    col('sellerName'),
                     col('indexPromo'),
                     col('top'),
                     col('highlight'),
@@ -73,7 +72,6 @@ df_final = df_fact.join(df_preprocees, on='id')
 
 print(f'Read file to s3 bucket: {DATE}/{BRAND_NAME}.csv')
 
-df_final.write.format('csv') \
-    .coalesce(1) \
+df_final.coalesce(1).write.format('csv') \
     .option('header', 'true') \
     .save(f's3a://{YC_OUTPUT_DATA_BUCKET}/{DATE}/{BRAND_NAME}')
