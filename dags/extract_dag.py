@@ -158,18 +158,19 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
             sql=
             f'''
                 INSERT INTO clickhousedb.Auto (
-                    Id, brand, model, generation, year, engine_capacity, transmission_type,
-                    body_type, condition, miliage_km, color, drive_type, indexPromo, top, highlighted,
-                    status, publicUrl, SellerName, SellerCity, publishedAt, Currency, Amount)
-                SELECT Id, brand, model, generation, year, engine_capacity, transmission_type,
-                    body_type, condition, miliage_km, color, drive_type, indexPromo, top, highlighted,
-                    status, publicUrl, SellerName, SellerCity, publishedAt, Currency, Amount
-                FROM s3('https://storage.yandexcloud.net/av-output/{{ ds }}/{brand_name}.csv',
+                    id, currency, amount, publishedAt, locationName, sellerName, indexPromo,
+                    top, highlighted, status, publicUrl, brand, model, generation, year, engine_capacity,
+                    engine_type, transmission_type, body_type, drive_type, color, miliage_km, condition)
+                SELECT id, currency, amount, publishedAt, locationName, sellerName, indexPromo,
+                    top, highlighted, status, publicUrl, brand, model, generation, year, engine_capacity,
+                    engine_type, transmission_type, body_type, drive_type, color, miliage_km, condition
+                FROM s3('https://storage.yandexcloud.net/av-output/{{ ds }}/{brand_name}/*.csv',
                     'CSVWithNames',
-                    'Id Int32, brand String, model String, generation String, year Int, engine_capacity Float32,
-                     transmission_type String, body_type String, condition String, miliage_km Int32, color String,
-                     drive_type String, indexPromo bool, top bool, highlighted bool, status String, publicUrl String,
-                     SellerName String, SellerCity String, publishedAt DateTime, Currency String, Amount Float32')
+                    'id Int32, currency String, amount Float32, publishedAt DateTime, locationName String,
+                    sellerName String, indexPromo bool, top bool, highlighted bool, status String, publicUrl String,
+                    brand String, model String, generation String, year Int8, engine_capacity Float32,
+                    engine_type Float32, transmission_type String, body_type String, drive_type String,
+                    color String, miliage_km Int32, condition String')
             ''',
             clickhouse_conn_id='clickhouse_connection',
             dag=dag,
