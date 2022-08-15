@@ -11,7 +11,7 @@ The diagram above shows the data flow in the project. At the first stage of the 
 ### Dag tasks
 ![Chart of dag](img/img.png)
 
-#### Collecting metrics from Airflow occurs with Prometheus and their visualization with Grafana.
+## Collecting metrics from Airflow occurs with Prometheus and their visualization with Grafana.
 
 ### Visualization metric from Airflow by Grafana
 ![Chart of dag](img/image_2022-08-07_14-58-53.png)
