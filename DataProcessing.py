@@ -1,11 +1,11 @@
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame, SQLContext
+from pyspark import SparkConf, SparkContext
 from pyspark.sql.utils import AnalysisException
 from pyspark.sql.functions import *
 from pyspark.sql.types import *
 
 from datetime import datetime
 import sys
-import logging
 
 
 YC_INPUT_DATA_BUCKET = 'av-input'
@@ -13,14 +13,14 @@ YC_OUTPUT_DATA_BUCKET = 'av-output'
 BRAND_NAME = sys.argv[1]
 DATE = datetime.now().strftime('%Y-%m-%d')
 
-auto_detail_columns = ['brand', 'model', 'generation',
+auto_detail_columns = ['id', 'brand', 'model', 'generation',
                        'year', 'engine_capacity',
                        'engine_type', 'transmission_type',
                        'body_type', 'drive_type', 'color',
                        'mileage_km', 'condition']
 
 
-def has_column(df, col):
+def has_column(df: DataFrame, col: str) -> bool:
     try:
         df[col]
         return True
@@ -28,12 +28,18 @@ def has_column(df, col):
         return False
 
 
-spark = SparkSession.builder.enableHiveSupport().getOrCreate()
+# conf = SparkConf().setAppName("Auto processing")
+# spark = SparkContext(conf=conf)
+conf = SparkConf().setAppName('Auto')
+sc = SparkContext(conf=conf)
+sql = SQLContext(sc)
+# spark = SparkSession.builder\
+#     .appName("Auto processing")\
+#     .getOrCreate()
 
-logging.info(f'Read file from s3 bucket: {DATE}/{BRAND_NAME}.json')
+print(f'Read file from s3 bucket: {DATE}/{BRAND_NAME}.json')
 
-df = spark.read.format('json') \
-    .load(f's3a://{YC_INPUT_DATA_BUCKET}/{DATE}/{BRAND_NAME}.json')
+df = sql.read.json(f's3a://{YC_INPUT_DATA_BUCKET}/{DATE}/{BRAND_NAME}/*.json')
 
 df_fact = df.select(col('id'),
                     col('price.usd.currency'),
@@ -65,7 +71,9 @@ for detail in auto_detail_columns:
 df_preprocees = df_preprocees.select(*auto_detail_columns)
 df_final = df_fact.join(df_preprocees, on='id')
 
-logging.info(f'Read file to s3 bucket: {DATE}/{BRAND_NAME}.csv')
+print(f'Read file to s3 bucket: {DATE}/{BRAND_NAME}.csv')
 
 df_final.write.format('csv') \
+    .coalesce(1) \
+    .option('header', 'true') \
     .save(f's3a://{YC_OUTPUT_DATA_BUCKET}/{DATE}/{BRAND_NAME}')
