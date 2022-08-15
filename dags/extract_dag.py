@@ -95,41 +95,15 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
                               op_kwargs={"brand_name": brand_name, "date": "{{ ds }}"},
                               dag=dag)
 
-        create_spark_cluster = DataprocCreateClusterOperator(
-            task_id='dp-cluster-create-task',
-            folder_id=YC_DP_FOLDER_ID,
-            cluster_name=YC_DP_CLUSTER_NAME,
-            cluster_description=YC_DP_CLUSTER_DESC,
-            subnet_id=YC_DP_SUBNET_ID,
-            s3_bucket=YC_DP_LOGS_BUCKET,
-            zone='ru-central1-a',
-            service_account_id=YC_DP_SA_ID,
-            cluster_image_version='2.0.43',
-            masternode_resource_preset='s2.small',
-            masternode_disk_size=20,
-            masternode_disk_type='network-ssd',
-            computenode_resource_preset='m2.large',
-            computenode_disk_size=20,
-            computenode_disk_type='network-ssd',
-            computenode_count=1,
-            computenode_max_hosts_count=5,
-            services=['YARN', 'SPARK'],
-            datanode_count=0,
-            dag=dag
-        )
 
         spark_processing = DataprocCreatePysparkJobOperator(
             task_id='dp-cluster-pyspark-task',
+            cluster_id='c9qru3u49bppevtahpva',
             main_python_file_uri=f's3a://{YC_SOURCE_BUCKET}/DataProcessing.py',
             args=[brand_name],
             dag=dag
         )
 
-        delete_spark_cluster = DataprocDeleteClusterOperator(
-            task_id='dp-cluster-delete-task',
-            trigger_rule=TriggerRule.ALL_DONE,
-            dag=dag
-        )
 
         insert_into_db = ClickHouseOperator(
             task_id='insert_into_clickhouse',
@@ -163,8 +137,7 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
 
         count_number >> count_pages >>\
         extract >> load_to_storage >> \
-        create_spark_cluster >> spark_processing >> delete_spark_cluster >>\
-        insert_into_db >> send_email
+        spark_processing >> insert_into_db >> send_email
 
         return dag
 
