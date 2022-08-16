@@ -25,6 +25,8 @@ Collecting metrics from Airflow occurs with Prometheus and their visualization w
 ![Chart of dag](img/image_2022-08-07_15-02-04.png)
 #
 ![Chart of dag](img/chrome_i0nNq6FPCY.png)
+#
+![Chart of dag](img/img_1.png)
 
 
 # Files
