@@ -7,8 +7,8 @@ import uuid
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.email import EmailOperator
+from airflow.exceptions import AirflowException
 from airflow.models import Variable
-from airflow.utils.trigger_rule import TriggerRule
 from airflow.providers.yandex.operators.yandexcloud_dataproc import (
     DataprocCreateClusterOperator,
     DataprocDeleteClusterOperator,
@@ -37,7 +37,7 @@ def extract_from_api(brand_id: int, templates_dict: dict, **context):
             try:
                 info = get_info_by_id(int(_id))
                 list_info.append(info)
-            except requests.exceptions.ConnectionError as e:
+            except (requests.exceptions.ConnectionError, AirflowException) as e:
                 logging.warning(f'ConnectionError, more detail {e}')
                 continue
     serialized_info = json.dumps(list_info)
@@ -60,11 +60,11 @@ def load_to_cloud(brand_name: str, date: str, templates_dict: dict, **context):
 
 
 def generate_dag(brand_name: str, brand_id: int, number: int):
-    schedule_interval = f'{number%60} {10+number//60} * * *'
+    schedule_interval = f'{number%60} {9+number//60} * * *'
     with DAG(
             dag_id=f'{brand_id}_to_cloud',
             schedule_interval=schedule_interval,
-            start_date=datetime(2022, 8, 13)
+            start_date=datetime(2022, 8, 16)
     ) as dag:
 
         count_number = PythonOperator(task_id="count_number",
@@ -98,12 +98,11 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
 
         spark_processing = DataprocCreatePysparkJobOperator(
             task_id='dp-cluster-pyspark-task',
-            cluster_id='c9qru3u49bppevtahpva',
+            cluster_id='c9qjficdcjrm6417pj8r',
             main_python_file_uri=f's3a://{YC_SOURCE_BUCKET}/DataProcessing.py',
             args=[brand_name],
             dag=dag
         )
-
 
         insert_into_db = ClickHouseOperator(
             task_id='insert_into_clickhouse',
@@ -117,8 +116,8 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
                         SELECT id, currency, amount, publishedAt, locationName, indexPromo,
                             top, highlight, status, publicUrl, brand, model, generation, year, engine_capacity,
                             engine_type, transmission_type, body_type, drive_type, color, mileage_km, condition
-                        FROM s3('https://storage.yandexcloud.net/av-output/2022-08-15/Daihatsu/*.csv',
-                         'YCAJE30XgdytxZagWHrAXw28g', 'YCOJZ_xTx3NdeBpyPrCLw3vcSBY9vi_woPti0pVi', 'CSVWithNames',
+                        FROM s3('https://storage.yandexcloud.net/av-output/{"{{ ds }}"}/{brand_name}/*.csv',
+                         'YC***', 'YCOJZ***', 'CSVWithNames',
                             'id Int64, currency String, amount Float32, publishedAt Date, locationName String,
                             indexPromo bool, top bool, highlight bool, status String, publicUrl String,
                             brand String, model String, generation String, year Int16, engine_capacity Float32,
@@ -137,7 +136,8 @@ def generate_dag(brand_name: str, brand_id: int, number: int):
 
         count_number >> count_pages >>\
         extract >> load_to_storage >> \
-        spark_processing >> insert_into_db >> send_email
+        spark_processing >>\
+        insert_into_db >> send_email
 
         return dag
 
