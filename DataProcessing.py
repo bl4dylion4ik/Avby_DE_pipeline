@@ -28,14 +28,9 @@ def has_column(df: DataFrame, col: str) -> bool:
         return False
 
 
-# conf = SparkConf().setAppName("Auto processing")
-# spark = SparkContext(conf=conf)
 conf = SparkConf().setAppName('Auto')
 sc = SparkContext(conf=conf)
 sql = SQLContext(sc)
-# spark = SparkSession.builder\
-#     .appName("Auto processing")\
-#     .getOrCreate()
 
 print(f'Read file from s3 bucket: {DATE}/{BRAND_NAME}.json')
 
