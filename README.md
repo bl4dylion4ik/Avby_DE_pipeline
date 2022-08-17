@@ -28,6 +28,10 @@ Collecting metrics from Airflow occurs with Prometheus and their visualization w
 #
 ![Chart of dag](img/img_1.png)
 
+### Report in PowerBI
+![Chart of dag](FoxitReader_hTsJeSnyrW.png)
+#
+![Chart of dag](FoxitReader_oX4XDAjBXL.png)
 
 # Files
 
