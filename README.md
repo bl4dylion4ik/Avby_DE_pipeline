@@ -50,3 +50,4 @@ In this step data is loaded to Power BI report which shows several things:
 - dags/scraper.py - Site scrapper
 - clickhousedb.sql - Schema of DWH in ClickHouse
 - files/prometheus.yml, files/statsd_mapping.yml - Files that allows collect metrics from Airflow
+- prediction_model/model.ipynb - LgbmRegressor pipeline with mmlspark
