@@ -25,7 +25,22 @@ Collecting metrics from Airflow occurs with Prometheus and their visualization w
 ![Chart of dag](img/image_2022-08-07_15-02-04.png)
 #
 ![Chart of dag](img/chrome_i0nNq6FPCY.png)
+#
+![Chart of dag](img/img_1.png)
 
+### Report in PowerBI
+In this step data is loaded to Power BI report which shows several things:
+
+- Percentage ratio by car brands
+- Average price/ Average price by car brands/ Average price by year
+- Percentage ratio by condition
+- Count of unique location
+- Percentage ratio by color
+- Average mileage by year
+#
+![Chart of dag](img/FoxitReader_hTsJeSnyrW.png)
+#
+![Chart of dag](img/FoxitReader_oX4XDAjBXL.png)
 
 # Files
 
