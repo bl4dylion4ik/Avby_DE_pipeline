@@ -1,10 +1,168 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='/css/style.css') }}">
 </head>
 <body>
+<div class="container">
+    <div class="header">
+        <h1 class="text-center text-muted">Price Prediction</h1>
+    </div>
 
+    <br><br><br>
+
+    <div class="row">
+        <div class="form-group col-xs-6">
+            <label for="all_classes">Select brand</label>
+            <select class="form-control" style="color: white; background: #009B77;" id="all_classes">
+                {% for o in all_classes %}
+                <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group col-xs-6">
+            <label for="all_entries">Select model</label>
+            <select class="form-control" style="color:white; background:#009B77;" id="all_entries">
+                {% for o in all_entries %}
+                <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group col-xs-6">
+            <label for="all_gen">Select generation</label>
+            <select class="form-control" style="color:white; background:#009B77;" id="all_gen">
+                {% for o in all_gen %}
+                <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group col-xs-6">
+            <label for="year">Select year</label>
+            <select class="form-control" style="color:white; background:#009B77;" id="year">
+                {% for o in year %}
+                <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group col-xs-6">
+            <label for="engine_capacity">Select engine capacity</label>
+            <select class="form-control" style="color:white; background:#009B77;" id="engine_capacity">
+                {% for o in engine_capacity %}
+                <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group col-xs-6">
+            <label for="all_engine">Select engine type</label>
+            <select class="form-control" style="color:white; background:#009B77;" id="all_engine">
+                {% for o in all_engine %}
+                <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group col-xs-6">
+            <label for="all_transmission">Select transmission type</label>
+            <select class="form-control" style="color:white; background:#009B77;" id="all_transmission">
+                {% for o in all_transmission %}
+                <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group col-xs-6">
+            <label for="all_body">Select body type</label>
+            <select class="form-control" style="color:white; background:#009B77;" id="all_body">
+                {% for o in all_body %}
+                <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group col-xs-6">
+            <label for="drive_type">Select drive type</label>
+            <select class="form-control" style="color:white; background:#009B77;" id="drive_type">
+                {% for o in drive_type %}
+                <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group col-xs-6">
+            <label for="color">Select drive type</label>
+            <select class="form-control" style="color:white; background:#009B77;" id="color">
+                {% for o in color %}
+                <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+
+            </select>
+        </div>
+        <div class="form-group col-xs-6">
+            <label for="mileage_km">Select mileage in km</label>
+            <input class="form-control" style="color:white; background:#009B77;" id="mileage_km">
+            </input>
+        </div>
+        <div class="form-group col-xs-6">
+            <label for="condition">Select car condition</label>
+            <select class="form-control" style="color:white; background:#009B77;" id="condition">
+                {% for o in condition %}
+                <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div>
+        <button type="button" style="color:white; background:#3498DB;" id="process_input">Predict price</button>
+    </div>
+    <br><br>
+    <div id="processed_results"></div>
+</div>
+<script src="https://code.jquery.com/jquery-1.12.4.js" type="text/javascript"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+
+        $('#all_classes').change(function () {
+
+            $.getJSON('/dropdown_menu_1', {
+                brand: $('#all_classes').val()
+
+            }).success(function (data) {
+                $('#all_entries').html(data.html_string_selected);
+            })
+        });
+
+        $('#all_entries').change(function () {
+
+            $.getJSON('/dropdown_menu_2', {
+                brand: $('#all_classes').val(),
+                model: $('#all_entries').val()
+
+            }).success(function (data) {
+                $('#all_gen').html(data.html_string_selected);
+            })
+        });
+        $('#process_input').bind('click', function () {
+
+            $.getJSON('/predict', {
+                brand: $('#all_classes').val(),
+                model: $('#all_entries').val(),
+                generation: $('#all_gen').val(),
+                year: $('#year').val(),
+                engine_capacity: $('#engine_capacity').val(),
+                engine_type: $('#all_engine').val(),
+                transmission_type: $('#all_transmission').val(),
+                body_type: $('#all_body').val(),
+                drive_type: $('#drive_type').val(),
+                color: $('#color').val(),
+                mileage_km: $('#mileage_km').val(),
+                condition: $('#condition').val(),
+
+            }).success(function (data) {
+                $('#processed_results').text(data.price);
+            })
+            return false;
+
+        });
+    });
+</script>
 </body>
 </html>
