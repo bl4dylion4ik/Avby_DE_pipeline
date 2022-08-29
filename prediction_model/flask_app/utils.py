@@ -3,6 +3,11 @@ import requests
 
 
 def get_data_object_from_request(request) -> pd.DataFrame:
+    """
+    Process data from request for get DataFrame
+    :param request:
+    :return pd.DataFrame:
+    """
     brand = request.args.get('brand')
     model = request.args.get('model')
     generation = request.args.get('generation')
@@ -32,7 +37,30 @@ def get_data_object_from_request(request) -> pd.DataFrame:
     return features
 
 
+def get_data_object_from_json(request) -> pd.DataFrame:
+    """
+    Process json from api for get DataFrame
+    :param request:
+    :return pd.DataFrame:
+    """
+    x = request.get_json()[0]
+
+    columns = ['brand', 'model', 'generation', 'year', 'engine_capacity',
+               'engine_type', 'transmission_type', 'body_type', 'drive_type',
+               'color', 'mileage_km', 'condition']
+
+    features = pd.DataFrame.from_records(x, columns=columns, index=[0])
+    features['year'] = features['year'].astype(int)
+    features['engine_capacity'] = features['engine_capacity'].astype(float)
+    features['mileage_km'] = features['mileage_km'].astype(int)
+    return features
+
+
 def get_brand_model_gen() -> dict:
+    """
+    Get dict from api for dropdown menu, like: {'Audi': {'A4': [C4, C5]}}
+    :return dict:
+    """
     BRAND_MODEL_GEN = {}
     BRAND_URL = 'https://api.av.by/offer-types/cars/catalog/brand-items'
 
@@ -57,6 +85,10 @@ def get_brand_model_gen() -> dict:
 
 
 def get_body_type() -> list:
+    """
+    Get list of body type from api for dropdown menu
+    :return list:
+    """
     body_type = []
     URL = 'https://api.av.by/offer-types/cars/catalog/body-types'
     response = requests.get(URL).json()
@@ -66,6 +98,10 @@ def get_body_type() -> list:
 
 
 def get_engine_type() -> list:
+    """
+    Get list of engine type from api for dropdown menu
+    :return list:
+    """
     engine_type = []
     URL = 'https://api.av.by/offer-types/cars/catalog/engine-types'
     response = requests.get(URL).json()
@@ -75,6 +111,10 @@ def get_engine_type() -> list:
 
 
 def get_transmission_type() -> list:
+    """
+    Get list of transmission type from api for dropdown menu
+    :return list:
+    """
     transmission_type = []
     URL = 'https://api.av.by/offer-types/cars/catalog/transmission-types'
     response = requests.get(URL).json()

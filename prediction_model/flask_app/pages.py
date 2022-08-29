@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, send_from_directory
 import numpy as np
 
 import utils
@@ -43,3 +43,14 @@ def index_page():
 @pages.route('/about')
 def about_page():
     return render_template('about.html')
+
+
+@pages.route('/api/docs')
+def swagger_ui():
+    return render_template('swagger_ui.html')
+
+
+@pages.route('/spec')
+def get_spec():
+    return send_from_directory(pages.root_path, 'api.yaml')
+
