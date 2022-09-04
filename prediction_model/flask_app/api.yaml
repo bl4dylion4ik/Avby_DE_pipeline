@@ -1,0 +1,79 @@
+openapi: 3.0.3
+info:
+  title: Car prediction API
+  description: An API that allows users to estimate the cost of their car
+  version: 1.0.0
+paths:
+  /api/predict:
+    post:
+        description: Predict price of your car by parameters
+        parameters:
+            - name: query
+              in: body
+              schema:
+                type: array
+                items:
+                  $ref: '#/definitions/Query'
+        response:
+          200:
+            description: Returns predicted price
+            schema:
+              type: object
+              properties:
+                price:
+                  type: string
+                  example: 12890
+
+definitions:
+  Query:
+    type: object
+    required:
+      - brand
+      - model
+      - generation
+      - year
+      - engine_capacity
+      - engine_type
+      - transmission_type
+      - body_type
+      - drive_type
+      - color
+      - mileage_km
+      - condition
+    properties:
+      brand:
+        type: string
+        example: Audi
+      model:
+        type: string
+        example: A4
+      generation:
+        type: string
+        example: C6
+      year:
+        type: string
+        example: 2011
+      engine_capacity:
+        type: string
+        example: 2.1
+      engine_type:
+        type: string
+        example: бензин
+      transmission_type:
+        type: string
+        example: автомат
+      body_type:
+        type: string
+        example: седан
+      drive_type:
+        type: string
+        example: передний привод
+      color:
+        type: string
+        example: чёрный
+      mileage_km:
+        type: string
+        example: 230908
+      condition:
+        type: string
+        example: с пробегом
