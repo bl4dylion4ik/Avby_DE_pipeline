@@ -42,6 +42,9 @@ In this step data is loaded to Power BI report which shows several things:
 #
 ![Chart of dag](img/FoxitReader_oX4XDAjBXL.png)
 
+### Baseline of web app
+![Chart of dag](img/chrome_1Yse7F0rc7.png)
+
 # Files
 
 - docker-compose.yaml - File that allows to use Airflow
